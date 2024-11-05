@@ -5,6 +5,26 @@ from typing import List, Dict
 import json
 import os
 
+class HFInferenceLLM:
+    def __init__(self, api_token):
+        self.client = InferenceClient(
+            model="HuggingFaceH4/zephyr-7b-beta",
+            token=api_token
+        )
+    
+    def __call__(self, prompt: str) -> str:
+        try:
+            response = self.client.text_generation(
+                prompt,
+                max_new_tokens=256,
+                temperature=0.7,
+                repetition_penalty=1.1
+            )
+            return response
+        except Exception as e:
+            st.error(f"Error generating response: {str(e)}")
+            return "Error generating response"
+
 class DebateAgent:
     def __init__(self, name: str, stance: str, llm):
         self.name = name
