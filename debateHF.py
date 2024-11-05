@@ -1,3 +1,6 @@
+pip install huggingface_hub transformers torch streamlit
+
+
 import streamlit as st
 from huggingface_hub import InferenceClient
 import time
