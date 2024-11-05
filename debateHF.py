@@ -1,11 +1,16 @@
-
-
-
 import streamlit as st
 from huggingface_hub import InferenceClient
 import time
 from typing import List, Dict
 import json
+import os
+
+# Initialize Streamlit page config
+st.set_page_config(
+    page_title="AI Debate System",
+    page_icon="🗣️",
+    layout="wide"
+)
 
 class HFInferenceLLM:
     def __init__(self, api_token):
@@ -13,7 +18,7 @@ class HFInferenceLLM:
             model="HuggingFaceH4/zephyr-7b-beta",
             token=api_token
         )
-
+    
     def __call__(self, prompt: str) -> str:
         try:
             response = self.client.text_generation(
@@ -26,6 +31,7 @@ class HFInferenceLLM:
         except Exception as e:
             st.error(f"Error generating response: {str(e)}")
             return "Error generating response"
+
 
 class DebateAgent:
     def __init__(self, name: str, stance: str, llm):
@@ -122,14 +128,17 @@ class DebateSystem:
 
 def main():
     st.title("AI Debate System (Using Zephyr-7B)")
-
-    # Hugging Face API Token input
-    api_token = st.text_input(
-        "Enter your Hugging Face API token:",
-        type="password",
-        help="Get your free token at https://huggingface.co/settings/tokens"
-    )
-
+    
+    # Get API token from environment variable or user input
+    api_token = os.getenv('HUGGINGFACE_API_TOKEN')
+    
+    if not api_token:
+        api_token = st.text_input(
+            "Enter your Hugging Face API token:", 
+            type="password",
+            help="Get your free token at https://huggingface.co/settings/tokens"
+        )
+    
     if not api_token:
         st.warning("Please enter your Hugging Face API token to continue")
         st.markdown("""
@@ -140,7 +149,7 @@ def main():
         4. Create a new token
         """)
         return
-
+    
     # Initialize LLM
     if 'llm' not in st.session_state:
         try:
@@ -149,7 +158,7 @@ def main():
         except Exception as e:
             st.error(f"Error connecting to Hugging Face: {str(e)}")
             return
-
+    
     # Topic selection
     topic_options = [
         "Should artificial intelligence be regulated?",
@@ -157,14 +166,14 @@ def main():
         "Should social media platforms be responsible for content moderation?",
         "Custom topic"
     ]
-
+    
     topic_selection = st.selectbox("Select debate topic:", topic_options)
-
+    
     if topic_selection == "Custom topic":
         topic = st.text_input("Enter your custom topic:")
     else:
         topic = topic_selection
-
+    
     # Debate format options
     st.sidebar.title("Debate Settings")
     format_options = {
@@ -173,14 +182,14 @@ def main():
         "Extended": "Multiple rounds with cross-examination"
     }
     debate_format = st.sidebar.selectbox("Select debate format:", list(format_options.keys()))
-
+    
     if st.button("Start Debate"):
         if topic:
             with st.spinner("Generating debate..."):
                 try:
                     debate = DebateSystem(topic, st.session_state['llm'])
                     debate_log = debate.run_debate_round()
-
+                    
                     # Display debate with improved formatting
                     for event in debate_log:
                         if event['type'] == "MODERATOR":
@@ -196,7 +205,7 @@ def main():
                             with st.expander("📋 Fact Check"):
                                 st.markdown(event['content'])
                         st.markdown("---")
-
+                
                 except Exception as e:
                     st.error(f"An error occurred: {str(e)}")
         else:
