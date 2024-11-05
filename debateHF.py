@@ -1,4 +1,4 @@
-pip install huggingface_hub transformers torch streamlit
+!pip install huggingface_hub transformers torch streamlit
 
 
 import streamlit as st
