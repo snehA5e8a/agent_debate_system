@@ -3,6 +3,7 @@ from huggingface_hub import InferenceClient
 import time
 from typing import List, Dict
 import json
+import os
 
 class DebateAgent:
     def __init__(self, name: str, stance: str, llm):
