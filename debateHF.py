@@ -54,57 +54,63 @@ class DebateAgent:
         })
     
     def generate_opening_statement(self, topic: str, parameters: Dict) -> str:
-        """Generates an opening statement"""
-        prompt = f"""As a debater arguing {self.stance} on the topic: {topic}
-        Generate an opening statement that:
-        - Uses {parameters['debate_style']} style
-        - Focuses on {parameters['focus_points']} main points
-        - Maintains a {self.strategy} approach
-        - Provides specific evidence and examples
-        
-        Keep your response structured and professional."""
-        
-        response = self.llm(prompt)
-        self.remember(response)
-        self.stats["arguments_made"] += 1
-        return response
+    """Generates an opening statement"""
+    prompt = f"""As someone arguing {self.stance} on the topic: {topic}
     
-    def generate_rebuttal(self, topic: str, opponent_argument: str, parameters: Dict) -> str:
-        """Generates a rebuttal to opponent's argument"""
-        prompt = f"""As a debater arguing {self.stance} on the topic: {topic}
-        
-        Respond to this argument: {opponent_argument}
-        
-        Generate a rebuttal that:
-        - Uses {parameters['debate_style']} style
-        - Addresses {parameters['focus_points']} main points
-        - Maintains a {self.strategy} approach
-        - Provides counterarguments and evidence
-        
-        Keep your response focused and professional."""
-        
-        response = self.llm(prompt)
-        self.remember(response)
-        self.stats["rebuttals_made"] += 1
-        return response
+    Generate a clear, direct opening statement that:
+    - Uses {parameters['debate_style']} style
+    - Presents {parameters['focus_points']} main points
+    - Maintains a {self.strategy} approach
+    - Provides specific evidence and examples
     
-    def generate_closing_statement(self, topic: str, parameters: Dict) -> str:
-        """Generates a closing statement"""
-        memory_points = "\n".join([m["content"] for m in self.memory])
-        
-        prompt = f"""As a debater concluding arguments {self.stance} the topic: {topic}
-        
-        Previous points made:
-        {memory_points}
-        
-        Generate a closing statement that:
-        - Uses {parameters['debate_style']} style
-        - Summarizes main arguments
-        - Reinforces your position
-        - Addresses key counterpoints
-        
-        Keep your response impactful and professional."""
-        
+    Important:
+    - Focus on the arguments themselves
+    - Don't use debate competition language or address judges/audience
+    - Be direct and natural in your communication
+    
+    Keep your response structured and professional."""
+
+def generate_rebuttal(self, topic: str, opponent_argument: str, parameters: Dict) -> str:
+    """Generates a rebuttal to opponent's argument"""
+    prompt = f"""As someone arguing {self.stance} on the topic: {topic}
+    
+    In response to: {opponent_argument}
+    
+    Generate a direct rebuttal that:
+    - Uses {parameters['debate_style']} style
+    - Addresses {parameters['focus_points']} key points
+    - Maintains a {self.strategy} approach
+    - Provides counterarguments and evidence
+    
+    Important:
+    - Focus on addressing the arguments directly
+    - Don't use formal debate language or address judges/audience
+    - Keep the tone natural and focused on the discussion
+    
+    Keep your response clear and professional."""
+
+def generate_closing_statement(self, topic: str, parameters: Dict) -> str:
+    """Generates a closing statement"""
+    memory_points = "\n".join([m["content"] for m in self.memory])
+    
+    prompt = f"""As someone concluding arguments {self.stance} the topic: {topic}
+    
+    Previous points made:
+    {memory_points}
+    
+    Generate a closing statement that:
+    - Uses {parameters['debate_style']} style
+    - Summarizes your key arguments
+    - Reinforces your position with evidence
+    - Addresses main counterpoints
+    
+    Important:
+    - Focus on summarizing the arguments clearly
+    - Don't use debate competition language
+    - Keep the tone direct and natural
+    - Avoid addressing judges or audience
+    
+    Keep your response focused and professional."""        
         response = self.llm(prompt)
         self.remember(response)
         return response
