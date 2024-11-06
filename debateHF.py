@@ -15,6 +15,7 @@ st.set_page_config(
 class HFInferenceLLM:
     """Language model interface using HuggingFace Inference API"""
     def __init__(self, api_token):
+        api_token = st.secrets["api_token"]
         self.client = InferenceClient(
             model="HuggingFaceH4/zephyr-7b-beta",
             token=api_token
