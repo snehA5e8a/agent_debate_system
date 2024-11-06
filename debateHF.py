@@ -270,11 +270,14 @@ def main():
     }
     
     # HuggingFace API setup
-    api_token = st.text_input(
-        "Enter your HuggingFace API token:",
-        type="password",
-        help="Get your free token at https://huggingface.co/settings/tokens"
-    )
+    if "api_token" in st.secrets:
+        api_token = st.secrets["api_token"]
+    else:
+        api_token = st.text_input(
+            "Enter your HuggingFace API token:",
+            type="password",
+            help="Get your free token at https://huggingface.co/settings/tokens"
+            )
     
     if not api_token:
         st.warning("Please enter your HuggingFace API token to continue")
