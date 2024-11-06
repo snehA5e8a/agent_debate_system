@@ -173,7 +173,7 @@ class DebateSystem:
         
         # Opening statements
         for debater in [self.debater_pro, self.debater_con]:
-            statement = debater.generate_argument(self.topic)
+            statement = debater.generate_opening_statement(self.topic)
             self.log_event(f"{debater.name.upper()}", statement)
             
             fact_check = self.fact_checker.check_facts(statement)
@@ -183,7 +183,7 @@ class DebateSystem:
         for debater in [self.debater_pro, self.debater_con]:
             # Get opponent's last argument
             opponent_arg = self.debate_log[-3]['content'] if debater == self.debater_pro else self.debate_log[-1]['content']
-            rebuttal = debater.generate_argument(self.topic, context=opponent_arg)
+            rebuttal = debater.generate_rebuttal(self.topic, context=opponent_arg)
             self.log_event(f"{debater.name.upper()}_REBUTTAL", rebuttal)
             
             fact_check = self.fact_checker.check_facts(rebuttal)
