@@ -278,7 +278,7 @@ def main():
             type="password",
             help="Get your free token at https://huggingface.co/settings/tokens"
             )
-    
+    model_interface = HFInferenceLLM(api_token)
     if not api_token:
         st.warning("Please enter your HuggingFace API token to continue")
         st.markdown("""
