@@ -136,7 +136,51 @@ class FactCheckerAgent:
         })
         
         return result
-
+class DebateSystem:
+    def __init__(self, topic: str, llm):
+        self.topic = topic
+        self.debater_pro = DebateAgent("Proponent", "in favor of", llm)
+        self.debater_con = DebateAgent("Opponent", "against", llm)
+        self.fact_checker = FactCheckerAgent(llm)
+        self.moderator = ModeratorAgent(llm)
+        self.debate_log = []
+        
+    def log_event(self, event_type: str, content: str):
+        self.debate_log.append({
+            'type': event_type,
+            'content': content,
+            'timestamp': time.time()
+        })
+        
+    def run_debate_round(self) -> List[Dict]:
+        # Introduction
+        intro = self.moderator.moderate(self.topic, "opening")
+        self.log_event("MODERATOR", intro)
+        
+        # Opening statements
+        for debater in [self.debater_pro, self.debater_con]:
+            statement = debater.generate_argument(self.topic)
+            self.log_event(f"{debater.name.upper()}", statement)
+            
+            fact_check = self.fact_checker.check_facts(statement)
+            self.log_event("FACT_CHECK", fact_check)
+        
+        # Rebuttals
+        for debater in [self.debater_pro, self.debater_con]:
+            # Get opponent's last argument
+            opponent_arg = self.debate_log[-3]['content'] if debater == self.debater_pro else self.debate_log[-1]['content']
+            rebuttal = debater.generate_argument(self.topic, context=opponent_arg)
+            self.log_event(f"{debater.name.upper()}_REBUTTAL", rebuttal)
+            
+            fact_check = self.fact_checker.check_facts(rebuttal)
+            self.log_event("FACT_CHECK", fact_check)
+        
+        # Closing
+        closing = self.moderator.moderate(self.topic, "closing")
+        self.log_event("MODERATOR", closing)
+        
+        return self.debate_log
+        
 def main():
     st.title("AI Debate System")
     
