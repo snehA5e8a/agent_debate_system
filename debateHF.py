@@ -1,9 +1,4 @@
 import streamlit as st
-from langchain_openai import ChatOpenAI
-from langchain.agents import AgentType, initialize_agent, Tool
-from langchain.memory import ConversationBufferMemory
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 from huggingface_hub import InferenceClient
 import time
 from typing import List, Dict
@@ -43,95 +38,86 @@ class DebateAgent:
     def __init__(self, name: str, stance: str, llm):
         self.name = name
         self.stance = stance
-        self.memory = ConversationBufferMemory(memory_key="chat_history")
-        self.chain = LLMChain(
-            llm=llm,
-            prompt=self.create_prompt_template(),
-            memory=self.memory
-        )
-        self.strategy = "balanced"  # Can be: aggressive, balanced, analytical
+        self.llm = llm
+        self.memory = []
+        self.strategy = "balanced"
         self.stats = {
             "arguments_made": 0,
             "rebuttals_made": 0,
             "points_addressed": 0
         }
     
-    def create_prompt_template(self) -> PromptTemplate:
-        """Creates the prompt template for the agent"""
-        template = """You are a debater arguing {stance} on the topic: {topic}
-        Context from previous arguments: {context}
-        
-        Generate a clear, logical, and persuasive argument that:
-        - Uses {style} style
-        - Focuses on {num_points} main points
-        - Maintains a {strategy} approach
-        - Provides specific evidence and examples
-        
-        Previous points made: {memory}
-        
-        Response should be structured and professional."""
-        
-        return PromptTemplate(
-            input_variables=["stance", "topic", "context", "style", "num_points", "strategy", "memory"],
-            template=template
-        )
+    def remember(self, content: str):
+        self.memory.append({
+            "content": content,
+            "timestamp": time.time()
+        })
     
     def generate_opening_statement(self, topic: str, parameters: Dict) -> str:
         """Generates an opening statement"""
-        context = "Opening statement should establish main arguments."
-        response = self.chain.run(
-            stance=self.stance,
-            topic=topic,
-            context=context,
-            style=parameters['debate_style'],
-            num_points=parameters['focus_points'],
-            strategy=self.strategy,
-            memory=""
-        )
+        prompt = f"""As a debater arguing {self.stance} on the topic: {topic}
+        Generate an opening statement that:
+        - Uses {parameters['debate_style']} style
+        - Focuses on {parameters['focus_points']} main points
+        - Maintains a {self.strategy} approach
+        - Provides specific evidence and examples
+        
+        Keep your response structured and professional."""
+        
+        response = self.llm(prompt)
+        self.remember(response)
         self.stats["arguments_made"] += 1
         return response
     
     def generate_rebuttal(self, topic: str, opponent_argument: str, parameters: Dict) -> str:
         """Generates a rebuttal to opponent's argument"""
-        context = f"Responding to opponent's argument: {opponent_argument}"
-        response = self.chain.run(
-            stance=self.stance,
-            topic=topic,
-            context=context,
-            style=parameters['debate_style'],
-            num_points=parameters['focus_points'],
-            strategy=self.strategy,
-            memory=str(self.memory.chat_memory)
-        )
+        prompt = f"""As a debater arguing {self.stance} on the topic: {topic}
+        
+        Respond to this argument: {opponent_argument}
+        
+        Generate a rebuttal that:
+        - Uses {parameters['debate_style']} style
+        - Addresses {parameters['focus_points']} main points
+        - Maintains a {self.strategy} approach
+        - Provides counterarguments and evidence
+        
+        Keep your response focused and professional."""
+        
+        response = self.llm(prompt)
+        self.remember(response)
         self.stats["rebuttals_made"] += 1
         return response
     
     def generate_closing_statement(self, topic: str, parameters: Dict) -> str:
         """Generates a closing statement"""
-        context = "Closing statement should summarize key points and reinforce position."
-        response = self.chain.run(
-            stance=self.stance,
-            topic=topic,
-            context=context,
-            style=parameters['debate_style'],
-            num_points=parameters['focus_points'],
-            strategy=self.strategy,
-            memory=str(self.memory.chat_memory)
-        )
+        memory_points = "\n".join([m["content"] for m in self.memory])
+        
+        prompt = f"""As a debater concluding arguments {self.stance} the topic: {topic}
+        
+        Previous points made:
+        {memory_points}
+        
+        Generate a closing statement that:
+        - Uses {parameters['debate_style']} style
+        - Summarizes main arguments
+        - Reinforces your position
+        - Addresses key counterpoints
+        
+        Keep your response impactful and professional."""
+        
+        response = self.llm(prompt)
+        self.remember(response)
         return response
 
 class FactCheckerAgent:
     """Fact checks statements made during debate"""
     def __init__(self, llm):
         self.llm = llm
-        self.chain = LLMChain(
-            llm=llm,
-            prompt=self.create_prompt_template()
-        )
         self.verified_facts = {}
     
-    def create_prompt_template(self) -> PromptTemplate:
-        template = """Act as a fact-checker. Analyze this statement:
+    def check_facts(self, statement: str) -> str:
+        """Verifies facts in a statement"""
+        prompt = f"""Act as a fact-checker. Analyze this statement:
         
         Statement: {statement}
         
@@ -143,15 +129,8 @@ class FactCheckerAgent:
         
         Keep response concise but thorough."""
         
-        return PromptTemplate(
-            input_variables=["statement"],
-            template=template
-        )
-    
-    def check_facts(self, statement: str) -> str:
-        """Verifies facts in a statement"""
         try:
-            result = self.chain.run(statement=statement)
+            result = self.llm(prompt)
             self.verified_facts[statement] = result
             return result
         except Exception as e:
@@ -161,13 +140,10 @@ class ModeratorAgent:
     """Manages the debate flow and ensures fair discussion"""
     def __init__(self, llm):
         self.llm = llm
-        self.chain = LLMChain(
-            llm=llm,
-            prompt=self.create_prompt_template()
-        )
     
-    def create_prompt_template(self) -> PromptTemplate:
-        template = """As a debate moderator for the topic: {topic}
+    def moderate(self, topic: str, stage: str) -> str:
+        """Provides moderation text for current debate stage"""
+        prompt = f"""As a debate moderator for the topic: {topic}
         Current stage: {stage}
         
         Provide appropriate moderation text that:
@@ -177,15 +153,8 @@ class ModeratorAgent:
         
         Keep your response professional and concise."""
         
-        return PromptTemplate(
-            input_variables=["topic", "stage"],
-            template=template
-        )
-    
-    def moderate(self, topic: str, stage: str) -> str:
-        """Provides moderation text for current debate stage"""
         try:
-            return self.chain.run(topic=topic, stage=stage)
+            return self.llm(prompt)
         except Exception as e:
             return f"Moderation error: {str(e)}"
 
