@@ -136,6 +136,20 @@ class FactCheckerAgent:
         })
         
         return result
+
+
+class ModeratorAgent:
+    def __init__(self, llm):
+        self.llm = llm
+    
+    def moderate(self, topic: str, stage: str) -> str:
+        prompt = f"""As a debate moderator discussing {topic}, provide a {stage} statement.
+        Be professional, concise, and maintain neutrality.
+        Focus on guiding the debate and ensuring fair discussion."""
+        
+        return self.llm(prompt)
+
+
 class DebateSystem:
     def __init__(self, topic: str, llm):
         self.topic = topic
